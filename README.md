@@ -558,4 +558,4 @@ pharos-skills/
 
 ## License
 
-MIT — built for the Pharos Skill-to-Agent Dual Cascade Hackathon
+MIT © soesoe — built for the Pharos Skill-to-Agent Dual Cascade Hackathon
