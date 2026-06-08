@@ -51,19 +51,7 @@ app.get("/", (_req: Request, res: Response) => {
 app.get("/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
-    skills: [
-      "walletPersonalityAnalyzer",
-      "onChainCreditScore",
-      "smartContractRiskAuditor",
-      "whaleTracking",
-      "crossChainPortfolioAnalyzer",
-      "walletReputationOracle",
-      "rugPullDetector",
-      "aiPortfolioRebalancer",
-      "pharosNetworkIntelligence",
-      "agentDecisionEngine",
-      "agentTaskPlanner",
-    ],
+    skills: ALL_SKILLS.map(s => s.name),
     networks: Object.entries(NETWORKS).map(([key, cfg]) => ({
       key,
       name: cfg.name,
