@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pharos Skills API</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #080b14;
+      --surface: #0f1422;
+      --card: #141926;
+      --border: #1e2740;
+      --purple: #7c3aed;
+      --purple-light: #a855f7;
+      --blue: #3b82f6;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --input-bg: #0d1120;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #0f1422 0%, #1a0d2e 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--purple-light), var(--cyan));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo span { font-size: 1.4rem; }
+
+    .header-right { display: flex; align-items: center; gap: 16px; }
+
+    .server-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s;
+    }
+    .dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dot.offline { background: var(--red); }
+
+    /* ── Network selector ── */
+    .network-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .network-bar label { font-size: 0.8rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .network-btn {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .network-btn:hover { border-color: var(--purple); color: var(--text); }
+    .network-btn.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 20px;
+    }
+
+    /* ── Skill Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: #2e3d5f; }
+
+    .card-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(124,58,237,0.08), transparent);
+    }
+
+    .skill-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .card-title { font-size: 0.95rem; font-weight: 600; }
+    .card-subtitle { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    .card-body { padding: 16px 20px; }
+
+    /* ── Form ── */
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .field input, .field select {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-size: 0.85rem;
+      transition: border-color 0.2s;
+      font-family: 'Consolas', monospace;
+    }
+    .field input:focus, .field select:focus {
+      outline: none;
+      border-color: var(--purple);
+    }
+    .field select { cursor: pointer; }
+    .field select option { background: var(--card); }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* ── Button ── */
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .loading .spinner { display: block; }
+    .loading .btn-label { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Response ── */
+    .response-wrap { margin-top: 14px; }
+
+    .response-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-success { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+    .badge-error   { background: rgba(239,68,68,0.15);  color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
+    .badge-waiting { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid var(--border); }
+
+    .elapsed { font-size: 0.7rem; color: var(--muted); }
+
+    .response-box {
+      background: #070a12;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      max-height: 340px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .response-box::-webkit-scrollbar { width: 4px; }
+    .response-box::-webkit-scrollbar-track { background: transparent; }
+    .response-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* JSON syntax highlight */
+    .j-key    { color: #93c5fd; }
+    .j-str    { color: #86efac; }
+    .j-num    { color: #fda4af; }
+    .j-bool   { color: #f9a8d4; }
+    .j-null   { color: var(--muted); }
+
+    /* ── Personality result ── */
+    .personality-display {
+      text-align: center;
+      padding: 12px 0 4px;
+    }
+    .personality-emoji { font-size: 2.5rem; line-height: 1; }
+    .personality-label { font-size: 1rem; font-weight: 700; margin-top: 6px; color: var(--purple-light); }
+    .personality-desc  { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── Score bar ── */
+    .score-display { padding: 8px 0; }
+    .score-number {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--purple-light), var(--cyan));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .score-grade { font-size: 1rem; font-weight: 700; color: var(--yellow); margin-left: 8px; }
+    .score-bar-wrap { margin-top: 8px; background: var(--border); border-radius: 4px; height: 6px; }
+    .score-bar { height: 6px; border-radius: 4px; background: linear-gradient(90deg, var(--purple), var(--cyan)); transition: width 0.8s ease; }
+
+    /* ── Risk badge ── */
+    .risk-display { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+    .risk-level {
+      font-size: 1.1rem;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 8px;
+    }
+    .risk-LOW      { background: rgba(16,185,129,0.15); color: var(--green); }
+    .risk-MEDIUM   { background: rgba(245,158,11,0.15); color: var(--yellow); }
+    .risk-HIGH     { background: rgba(239,68,68,0.15);  color: var(--red); }
+    .risk-CRITICAL { background: rgba(239,68,68,0.25);  color: #ff6b6b; box-shadow: 0 0 12px rgba(239,68,68,0.3); }
+
+    /* ── Findings list ── */
+    .findings { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .finding {
+      font-size: 0.75rem;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border-left: 3px solid;
+      background: rgba(255,255,255,0.03);
+    }
+    .finding-CRITICAL { border-color: #ff6b6b; }
+    .finding-HIGH     { border-color: var(--red); }
+    .finding-MEDIUM   { border-color: var(--yellow); }
+    .finding-LOW      { border-color: var(--cyan); }
+    .finding-INFO     { border-color: var(--muted); }
+
+    /* ── Whale list ── */
+    .whale-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+    }
+    .whale-item:last-child { border-bottom: none; }
+    .whale-addr { color: var(--muted); font-family: monospace; }
+    .whale-val  { color: var(--green); font-weight: 700; }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; color: var(--muted); padding: 20px; font-size: 0.82rem; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+    }
+
+    @media (max-width: 480px) {
+      main { grid-template-columns: 1fr; padding: 16px; }
+      .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <span>🔮</span> Pharos Skills API
+  </div>
+  <div class="header-right">
+    <div class="server-badge">
+      <div class="dot" id="dot"></div>
+      <span id="serverStatus">Connecting…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── Network selector ───────────────────────────────── -->
+<div class="network-bar">
+  <label>Network:</label>
+  <button class="network-btn active" data-net="pharos_testnet" onclick="setNetwork(this)">Pharos Testnet</button>
+  <button class="network-btn" data-net="pharos_mainnet" onclick="setNetwork(this)">Pharos Mainnet</button>
+  <button class="network-btn" data-net="ethereum"       onclick="setNetwork(this)">Ethereum</button>
+  <button class="network-btn" data-net="polygon"        onclick="setNetwork(this)">Polygon</button>
+  <button class="network-btn" data-net="bsc"            onclick="setNetwork(this)">BSC</button>
+  <button class="network-btn" data-net="arbitrum"       onclick="setNetwork(this)">Arbitrum</button>
+</div>
+
+<!-- ── Cards ──────────────────────────────────────────── -->
+<main>
+
+  <!-- 1. Wallet Personality -->
+  <div class="card">
+    <div class="card-header">
+      <div class="skill-icon" style="background:rgba(168,85,247,0.15);">🧠</div>
+      <div>
+        <div class="card-title">Wallet Personality Analyzer</div>
+        <div class="card-subtitle">POST /api/wallet-personality</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Wallet Address</label>
+        <input id="wp-addr" type="text" placeholder="0x..." value="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" />
+      </div>
+      <button class="btn btn-primary" id="wp-btn" onclick="callPersonality()">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Analyze Personality</span>
+      </button>
+      <div class="response-wrap" id="wp-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 2. Credit Score -->
+  <div class="card">
+    <div class="card-header">
+      <div class="skill-icon" style="background:rgba(59,130,246,0.15);">📊</div>
+      <div>
+        <div class="card-title">On-Chain Credit Score</div>
+        <div class="card-subtitle">POST /api/credit-score</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Wallet Address</label>
+        <input id="cs-addr" type="text" placeholder="0x..." value="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" />
+      </div>
+      <button class="btn btn-primary" id="cs-btn" onclick="callCreditScore()">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Calculate Score</span>
+      </button>
+      <div class="response-wrap" id="cs-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 3. Risk Auditor -->
+  <div class="card">
+    <div class="card-header">
+      <div class="skill-icon" style="background:rgba(239,68,68,0.15);">🛡️</div>
+      <div>
+        <div class="card-title">Smart Contract Risk Auditor</div>
+        <div class="card-subtitle">POST /api/risk-audit</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Contract Address</label>
+        <input id="ra-addr" type="text" placeholder="0x..." value="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" />
+      </div>
+      <div class="field">
+        <label>Network (overrides global)</label>
+        <select id="ra-network">
+          <option value="ethereum" selected>Ethereum Mainnet</option>
+          <option value="pharos_testnet">Pharos Testnet</option>
+          <option value="pharos_mainnet">Pharos Mainnet</option>
+          <option value="polygon">Polygon</option>
+          <option value="bsc">BSC</option>
+          <option value="arbitrum">Arbitrum</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="ra-btn" onclick="callRiskAudit()">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Audit Contract</span>
+      </button>
+      <div class="response-wrap" id="ra-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 4. Whale Tracker -->
+  <div class="card">
+    <div class="card-header">
+      <div class="skill-icon" style="background:rgba(6,182,212,0.15);">🐋</div>
+      <div>
+        <div class="card-title">Whale Tracking</div>
+        <div class="card-subtitle">POST /api/whale-tracker</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="field">
+          <label>Threshold (native)</label>
+          <input id="wt-thresh" type="number" value="100" min="1" />
+        </div>
+        <div class="field">
+          <label>Block Range</label>
+          <input id="wt-range" type="number" value="10" min="1" max="100" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Watch Addresses (comma separated, optional)</label>
+        <input id="wt-watch" type="text" placeholder="0x..., 0x..." />
+      </div>
+      <button class="btn btn-primary" id="wt-btn" onclick="callWhaleTracker()">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Track Whales</span>
+      </button>
+      <div class="response-wrap" id="wt-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 5. Portfolio -->
+  <div class="card">
+    <div class="card-header">
+      <div class="skill-icon" style="background:rgba(16,185,129,0.15);">💼</div>
+      <div>
+        <div class="card-title">Cross-Chain Portfolio Analyzer</div>
+        <div class="card-subtitle">POST /api/portfolio</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Wallet Address</label>
+        <input id="pf-addr" type="text" placeholder="0x..." value="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" />
+      </div>
+      <div class="field">
+        <label>Chains (comma separated, blank = all)</label>
+        <input id="pf-chains" type="text" placeholder="ethereum, polygon, bsc..." />
+      </div>
+      <button class="btn btn-primary" id="pf-btn" onclick="callPortfolio()">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Analyze Portfolio</span>
+      </button>
+      <div class="response-wrap" id="pf-result" style="display:none"></div>
+    </div>
+  </div>
+
+
+  <!-- 6. Pharos Network Intelligence -->
+  <div class="card" style="border-color:rgba(124,58,237,0.4)">
+    <div class="card-header" style="background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(6,182,212,0.08))">
+      <div class="skill-icon" style="background:rgba(124,58,237,0.2);">🔷</div>
+      <div>
+        <div class="card-title">Pharos Network Intelligence</div>
+        <div class="card-subtitle">POST /api/network-stats · Pharos only</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="field">
+          <label>Network</label>
+          <select id="ni-network">
+            <option value="pharos_testnet" selected>Pharos Testnet</option>
+            <option value="pharos_mainnet">Pharos Mainnet</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Block Sample (5–20)</label>
+          <input id="ni-sample" type="number" value="10" min="5" max="20" />
+        </div>
+      </div>
+      <button class="btn btn-primary" id="ni-btn" onclick="callNetworkIntel()" style="background:linear-gradient(135deg,var(--purple),var(--cyan))">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Analyze Network</span>
+      </button>
+      <div class="response-wrap" id="ni-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 7. Wallet Reputation Oracle -->
+  <div class="card">
+    <div class="card-header">
+      <div class="skill-icon" style="background:rgba(245,158,11,0.15);">⭐</div>
+      <div>
+        <div class="card-title">Wallet Reputation Oracle</div>
+        <div class="card-subtitle">POST /api/wallet-reputation</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Wallet Address</label>
+        <input id="wr-addr" type="text" placeholder="0x..." value="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" />
+      </div>
+      <button class="btn btn-primary" id="wr-btn" onclick="callReputation()">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Check Reputation</span>
+      </button>
+      <div class="response-wrap" id="wr-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 7. Rug Pull Detector -->
+  <div class="card">
+    <div class="card-header">
+      <div class="skill-icon" style="background:rgba(239,68,68,0.2);">🚨</div>
+      <div>
+        <div class="card-title">Rug Pull Detector</div>
+        <div class="card-subtitle">POST /api/rug-pull</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Token Contract Address</label>
+        <input id="rp-addr" type="text" placeholder="0x..." value="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" />
+      </div>
+      <div class="field">
+        <label>Network (overrides global)</label>
+        <select id="rp-network">
+          <option value="ethereum" selected>Ethereum Mainnet</option>
+          <option value="pharos_testnet">Pharos Testnet</option>
+          <option value="pharos_mainnet">Pharos Mainnet</option>
+          <option value="polygon">Polygon</option>
+          <option value="bsc">BSC</option>
+          <option value="arbitrum">Arbitrum</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="rp-btn" onclick="callRugPull()">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Detect Rug Pull</span>
+      </button>
+      <div class="response-wrap" id="rp-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Payment Advisor -->
+  <div class="card" style="border-color:rgba(16,185,129,0.35)">
+    <div class="card-header" style="background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(6,182,212,0.06))">
+      <div class="skill-icon" style="background:rgba(16,185,129,0.18);">💸</div>
+      <div>
+        <div class="card-title">On-Chain Payment Advisor</div>
+        <div class="card-subtitle">POST /api/payment-advice · Safe payments on Pharos</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field"><label>From (Sender)</label><input id="pa-from" type="text" placeholder="0x..." /></div>
+      <div class="field"><label>To (Recipient)</label><input id="pa-to" type="text" placeholder="0x..." /></div>
+      <div class="row">
+        <div class="field"><label>Amount (native token)</label><input id="pa-amount" type="number" value="1" min="0" step="0.001" /></div>
+        <div class="field"><label>Network</label>
+          <select id="pa-network">
+            <option value="pharos_testnet" selected>Pharos Testnet</option>
+            <option value="pharos_mainnet">Pharos Mainnet</option>
+            <option value="ethereum">Ethereum</option>
+            <option value="polygon">Polygon</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="pa-btn" onclick="callPaymentAdvisor()" style="background:linear-gradient(135deg,var(--green),var(--cyan))">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Advise Payment</span>
+      </button>
+      <div class="response-wrap" id="pa-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Social Graph Analyzer -->
+  <div class="card" style="border-color:rgba(168,85,247,0.35)">
+    <div class="card-header" style="background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(59,130,246,0.06))">
+      <div class="skill-icon" style="background:rgba(168,85,247,0.18);">🕸️</div>
+      <div>
+        <div class="card-title">Social Graph Analyzer</div>
+        <div class="card-subtitle">POST /api/social-graph · On-chain social identity</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field"><label>Wallet Address</label><input id="sg-addr" type="text" placeholder="0x..." value="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" /></div>
+      <button class="btn btn-primary" id="sg-btn" onclick="callSocialGraph()" style="background:linear-gradient(135deg,var(--purple),var(--blue))">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Analyze Social Graph</span>
+      </button>
+      <div class="response-wrap" id="sg-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 9. Agent Decision Engine -->
+  <div class="card" style="border-color:rgba(16,185,129,0.4)">
+    <div class="card-header" style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(59,130,246,0.08))">
+      <div class="skill-icon" style="background:rgba(16,185,129,0.2);">🤖</div>
+      <div>
+        <div class="card-title">Agent Decision Engine</div>
+        <div class="card-subtitle">POST /agent/decide · BUY / HOLD / SELL / AVOID</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Wallet Address</label>
+        <input id="ad-wallet" type="text" placeholder="0x..." value="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" />
+      </div>
+      <button class="btn btn-primary" id="ad-btn" onclick="callDecisionEngine()" style="background:linear-gradient(135deg,var(--green),var(--blue))">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Get Decision</span>
+      </button>
+      <div class="response-wrap" id="ad-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 10. Agent Task Planner -->
+  <div class="card" style="border-color:rgba(245,158,11,0.4)">
+    <div class="card-header" style="background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(124,58,237,0.08))">
+      <div class="skill-icon" style="background:rgba(245,158,11,0.2);">📋</div>
+      <div>
+        <div class="card-title">Agent Task Planner</div>
+        <div class="card-subtitle">POST /agent/plan · Goal → Step-by-step plan</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Goal (natural language)</label>
+        <input id="ap-goal" type="text" placeholder="e.g. Increase portfolio yield" value="Increase portfolio yield" />
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Wallet (optional)</label>
+          <input id="ap-wallet" type="text" placeholder="0x..." />
+        </div>
+        <div class="field">
+          <label>Network (optional)</label>
+          <input id="ap-network" type="text" placeholder="pharos_testnet" />
+        </div>
+      </div>
+      <button class="btn btn-primary" id="ap-btn" onclick="callTaskPlanner()" style="background:linear-gradient(135deg,var(--yellow),var(--purple))">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Plan Task</span>
+      </button>
+      <div class="response-wrap" id="ap-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 8. AI Portfolio Rebalancer -->
+  <div class="card">
+    <div class="card-header">
+      <div class="skill-icon" style="background:rgba(59,130,246,0.15);">🤖</div>
+      <div>
+        <div class="card-title">AI Portfolio Rebalancer</div>
+        <div class="card-subtitle">POST /api/rebalance</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Wallet Address</label>
+        <input id="rb-addr" type="text" placeholder="0x..." value="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" />
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Risk Profile</label>
+          <select id="rb-risk">
+            <option value="conservative">Conservative</option>
+            <option value="moderate" selected>Moderate</option>
+            <option value="aggressive">Aggressive</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Chains (blank = pharos+eth)</label>
+          <input id="rb-chains" type="text" placeholder="ethereum, polygon…" />
+        </div>
+      </div>
+      <button class="btn btn-primary" id="rb-btn" onclick="callRebalancer()">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Rebalance Portfolio</span>
+      </button>
+      <div class="response-wrap" id="rb-result" style="display:none"></div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Pharos Skills Suite · Built for Pharos Skill-to-Agent Hackathon ·
+  <a href="/api/skills" target="_blank" style="color:var(--purple-light);text-decoration:none;">View All Skill Definitions ↗</a>
+</footer>
+
+<script>
+  const API = 'http://localhost:3000';
+  let currentNetwork = 'pharos_testnet';
+
+  // ── Network selector ────────────────────────────────────────────────
+  function setNetwork(btn) {
+    document.querySelectorAll('.network-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentNetwork = btn.dataset.net;
+  }
+
+  // ── Server health check ─────────────────────────────────────────────
+  async function checkServer() {
+    try {
+      const r = await fetch(`${API}/health`);
+      if (r.ok) {
+        document.getElementById('dot').className = 'dot online';
+        document.getElementById('serverStatus').textContent = 'API Online';
+      } else throw new Error();
+    } catch {
+      document.getElementById('dot').className = 'dot offline';
+      document.getElementById('serverStatus').textContent = 'API Offline';
+    }
+  }
+  checkServer();
+  setInterval(checkServer, 10000);
+
+  // ── JSON syntax highlighter ─────────────────────────────────────────
+  function highlight(json) {
+    return json
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/("(\\u[\dA-Fa-f]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+        if (/^"/.test(m)) return /:$/.test(m) ? `<span class="j-key">${m}</span>` : `<span class="j-str">${m}</span>`;
+        if (/true|false/.test(m)) return `<span class="j-bool">${m}</span>`;
+        if (/null/.test(m))       return `<span class="j-null">${m}</span>`;
+        return `<span class="j-num">${m}</span>`;
+      });
+  }
+
+  // ── Loading state helpers ───────────────────────────────────────────
+  function setLoading(btnId, on) {
+    const btn = document.getElementById(btnId);
+    if (on) { btn.disabled = true; btn.classList.add('loading'); }
+    else     { btn.disabled = false; btn.classList.remove('loading'); }
+  }
+
+  // ── Render response ─────────────────────────────────────────────────
+  function renderRaw(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    const ok = data.success;
+    wrap.style.display = 'block';
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge ${ok ? 'badge-success' : 'badge-error'}">${ok ? '✓ Success' : '✗ Error'}</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div class="response-box">${highlight(JSON.stringify(data, null, 2))}</div>`;
+  }
+
+  // ── Render personality ──────────────────────────────────────────────
+  function renderPersonality(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div class="personality-display">
+        <div class="personality-emoji">${d.emoji}</div>
+        <div class="personality-label">${d.personality}</div>
+        <div class="personality-desc">${d.description}</div>
+      </div>
+      <div style="margin-top:10px;font-size:0.78rem;color:var(--muted)">
+        ${d.traits.map(t => `<span style="display:inline-block;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);color:#a78bfa;padding:2px 8px;border-radius:12px;margin:2px;font-size:0.72rem">${t.label}</span>`).join('')}
+      </div>
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.75rem">
+        ${Object.entries(d.stats).map(([k,v]) => `<div style="background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:6px;border:1px solid var(--border)"><span style="color:var(--muted)">${k.replace(/([A-Z])/g,' $1').trim()}</span><br/><strong>${v}</strong></div>`).join('')}
+      </div>`;
+  }
+
+  // ── Render credit score ─────────────────────────────────────────────
+  function renderScore(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const pct = (d.score / 1000 * 100).toFixed(1);
+    const components = Object.entries(d.breakdown).map(([k, v]) => {
+      const b = v;
+      const p = b.maxScore > 0 ? (b.score / b.maxScore * 100) : 0;
+      return `<div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;font-size:0.73rem;margin-bottom:3px">
+          <span style="color:var(--muted)">${k.replace(/([A-Z])/g,' $1').trim()}</span>
+          <span>${b.score}<span style="color:var(--muted)">/${b.maxScore}</span></span>
+        </div>
+        <div style="background:var(--border);border-radius:3px;height:4px">
+          <div style="height:4px;border-radius:3px;background:linear-gradient(90deg,var(--purple),var(--blue));width:${p}%;transition:width 0.6s"></div>
+        </div>
+      </div>`;
+    }).join('');
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div class="score-display">
+        <span class="score-number">${d.score}</span><span style="color:var(--muted);font-size:0.9rem">/1000</span>
+        <span class="score-grade">${d.grade}</span>
+        <div class="score-bar-wrap"><div class="score-bar" style="width:${pct}%"></div></div>
+      </div>
+      <div style="font-size:0.78rem;color:var(--muted);margin:8px 0">${d.summary}</div>
+      <div style="margin-top:10px">${components}</div>`;
+  }
+
+  // ── Render risk audit ───────────────────────────────────────────────
+  function renderRisk(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const findings = d.findings.map(f =>
+      `<div class="finding finding-${f.severity}"><strong style="font-size:0.7rem">[${f.severity}] ${f.category}</strong><br/>${f.description}</div>`
+    ).join('');
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div class="risk-display">
+        <div class="risk-level risk-${d.riskLevel}">${d.riskLevel}</div>
+        <div style="font-size:0.78rem;color:var(--muted)">${d.contractName !== 'Unknown' ? d.contractName : d.contractAddress.slice(0,10)+'…'} · Score: ${d.riskScore} · ${d.isVerified ? '✓ Verified' : '⚠ Unverified'}</div>
+      </div>
+      <div style="font-size:0.78rem;margin:6px 0;color:var(--muted)">${d.summary}</div>
+      <div class="findings">${findings}</div>`;
+  }
+
+  // ── Render whale tracker ────────────────────────────────────────────
+  function renderWhale(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const txList = d.whaleTransactions.length === 0
+      ? `<div class="empty">🐳 No whale transactions found in scanned blocks</div>`
+      : d.whaleTransactions.slice(0,8).map(tx =>
+          `<div class="whale-item">
+            <span class="whale-addr">${tx.from.slice(0,6)}…${tx.from.slice(-4)} → ${(tx.to||'?').slice(0,6)}…${(tx.to||'?').slice(-4)}</span>
+            <span class="whale-val">${tx.valueNative.toFixed(2)}</span>
+          </div>`).join('');
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0">
+        ${[['Blocks','#'+d.latestBlock],['Whales',d.whaleTransactions.length],['Volume',d.totalVolume.toFixed(2)]].map(([l,v])=>`
+          <div style="background:rgba(6,182,212,0.07);border:1px solid rgba(6,182,212,0.2);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:0.68rem;color:var(--muted)">${l}</div>
+            <div style="font-size:0.9rem;font-weight:700;color:var(--cyan)">${v}</div>
+          </div>`).join('')}
+      </div>
+      <div>${txList}</div>`;
+  }
+
+  // ── Render portfolio ────────────────────────────────────────────────
+  function renderPortfolio(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const chains = d.chains.map(c => `
+      <div style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:8px;padding:10px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <strong style="font-size:0.82rem">${c.chain}</strong>
+          ${c.chainTotalUsd !== null ? `<span style="color:var(--green);font-size:0.82rem">$${c.chainTotalUsd.toFixed(2)}</span>` : ''}
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted)">${c.nativeBalance} · ${c.tokens.length} token${c.tokens.length !== 1 ? 's' : ''}</div>
+        ${c.tokens.map(t => `<div style="font-size:0.72rem;color:var(--cyan);margin-top:3px">• ${t.symbol}: ${parseFloat(t.balance).toFixed(4)}</div>`).join('')}
+      </div>`).join('');
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      ${d.totalValueUsd !== null ? `<div style="font-size:0.8rem;color:var(--muted);margin:8px 0">Total: <strong style="color:var(--green)">$${d.totalValueUsd.toFixed(2)}</strong> · Dominant: ${d.dominantChain}</div>` : ''}
+      ${chains}`;
+  }
+
+  // ── Render network intelligence ─────────────────────────────────────
+  function renderNetworkIntel(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const loadColors = { LOW:'var(--green)', MODERATE:'var(--cyan)', HIGH:'var(--yellow)', CONGESTED:'var(--red)' };
+    const lc = loadColors[d.networkLoad] || 'var(--text)';
+    const blocks = d.recentBlocks.map(b => {
+      const util = b.gasLimit !== '0' ? (parseInt(b.gasUsed) / parseInt(b.gasLimit) * 100).toFixed(0) : '?';
+      return `<div style="display:flex;justify-content:space-between;font-size:0.7rem;padding:3px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--muted)">#${b.blockNumber}</span>
+        <span>${b.txCount} txs</span>
+        <span style="color:var(--cyan)">${util}% gas</span>
+        ${b.baseFeePerGas ? `<span style="color:var(--muted)">${b.baseFeePerGas} gwei</span>` : ''}
+      </div>`;
+    }).join('');
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0">
+        ${[
+          ['Network Load', `<span style="color:${lc};font-weight:800">${d.networkLoad}</span>`],
+          ['Latest Block', '#'+d.latestBlock],
+          ['Gas Price', d.gasPriceGwei+' Gwei'],
+          ['Est. TPS', d.estimatedTps],
+          ['Avg Block', d.avgBlockTimeMs+'ms'],
+          ['Optimal Window', d.optimalGasWindow ? '<span style="color:var(--green)">✓ YES</span>' : '<span style="color:var(--red)">✗ NO</span>'],
+        ].map(([l,v]) => `<div style="background:rgba(124,58,237,0.07);border:1px solid rgba(124,58,237,0.2);border-radius:8px;padding:8px;text-align:center"><div style="font-size:0.66rem;color:var(--muted)">${l}</div><div style="font-size:0.85rem;font-weight:700;margin-top:2px">${v}</div></div>`).join('')}
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px">${d.summary}</div>
+      <div style="font-size:0.68rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Recent Blocks</div>
+      <div>${blocks}</div>`;
+  }
+
+  // ── Render reputation ───────────────────────────────────────────────
+  function renderReputation(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const trustColors = { EXCELLENT:'var(--green)', GOOD:'var(--cyan)', FAIR:'var(--yellow)', LOW:'var(--muted)', UNTRUSTED:'var(--red)' };
+    const color = trustColors[d.trustLevel] || 'var(--text)';
+    const factors = d.factors.map(f => {
+      const pct = f.maxScore > 0 ? (f.score / f.maxScore * 100) : 0;
+      return `<div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;font-size:0.73rem;margin-bottom:3px">
+          <span style="color:var(--muted)">${f.name}</span>
+          <span>${f.score}<span style="color:var(--muted)">/${f.maxScore}</span></span>
+        </div>
+        <div style="background:var(--border);border-radius:3px;height:4px">
+          <div style="height:4px;border-radius:3px;background:${color};width:${pct}%;transition:width 0.6s"></div>
+        </div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">${f.detail}</div>
+      </div>`;
+    }).join('');
+    const flags = d.flags.length > 0
+      ? d.flags.map(f => `<div style="font-size:0.72rem;color:var(--red);padding:3px 0">⚠ ${f}</div>`).join('')
+      : `<div style="font-size:0.72rem;color:var(--green)">✓ No red flags detected</div>`;
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+        <div style="font-size:2rem;font-weight:800;color:${color}">${d.reputationScore}</div>
+        <div>
+          <div style="font-size:1rem;font-weight:700;color:${color}">${d.trustLevel}</div>
+          <div style="font-size:0.72rem;color:var(--muted)">${d.network}</div>
+        </div>
+      </div>
+      <div style="font-size:0.76rem;color:var(--muted);margin-bottom:10px">${d.summary}</div>
+      <div>${factors}</div>
+      <div style="margin-top:8px;padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid var(--border)">${flags}</div>`;
+  }
+
+  // ── Render rug pull ─────────────────────────────────────────────────
+  function renderRugPull(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const riskColors = { LOW:'var(--green)', MEDIUM:'var(--yellow)', HIGH:'var(--red)', CRITICAL:'#ff4444' };
+    const color = riskColors[d.rugRisk] || 'var(--text)';
+    const signals = d.signals.map(s => {
+      const sc = { CRITICAL:'#ff4444', HIGH:'var(--red)', MEDIUM:'var(--yellow)', LOW:'var(--cyan)', INFO:'var(--muted)' }[s.severity];
+      return `<div class="finding finding-${s.severity}">
+        <strong style="font-size:0.7rem;color:${sc}">[${s.severity}] ${s.signal}</strong>
+        <br/><span style="font-size:0.71rem">${s.description}</span>
+      </div>`;
+    }).join('');
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div class="risk-display">
+        <div class="risk-level risk-${d.rugRisk}">${d.rugRisk}</div>
+        <div style="font-size:0.78rem;color:var(--muted)">${d.contractName !== 'Unknown' ? d.contractName : d.contractAddress.slice(0,10)+'…'} · Score: ${d.riskScore} · ${d.isVerified ? '✓ Verified' : '⚠ Unverified'}${d.holderConcentration !== null ? ` · Top3: ${d.holderConcentration}%` : ''}</div>
+      </div>
+      <div style="font-size:0.76rem;color:var(--muted);margin:6px 0">${d.summary}</div>
+      <div class="findings">${signals}</div>`;
+  }
+
+  // ── Render payment advisor ──────────────────────────────────────────
+  function renderPayment(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const rc = { LOW:'var(--green)', MEDIUM:'var(--yellow)', HIGH:'var(--red)', BLOCKED:'#ff4444' }[d.paymentRisk] || 'var(--text)';
+    const checks = d.checks.map(c => {
+      const ic = { PASS:'✓', WARN:'⚠', FAIL:'✗' }[c.status];
+      const cc = { PASS:'var(--green)', WARN:'var(--yellow)', FAIL:'var(--red)' }[c.status];
+      return `<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.72rem">
+        <span style="color:${cc};font-weight:700;min-width:14px">${ic}</span>
+        <div><strong>${c.check}</strong><br/><span style="color:var(--muted)">${c.detail}</span></div>
+      </div>`;
+    }).join('');
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:10px 0">
+        <div style="font-size:1.4rem;font-weight:900;color:${rc}">${d.paymentRisk}</div>
+        <div>
+          <div style="font-size:0.9rem;font-weight:700;color:${d.recommended?'var(--green)':'var(--red)'}">${d.recommended ? '✓ Recommended' : '✗ Not Recommended'}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">${d.amountNative} ${d.nativeToken} · Gas: ${d.estimatedGasCost}</div>
+        </div>
+      </div>
+      <div style="font-size:0.76rem;color:var(--muted);background:rgba(255,255,255,0.03);padding:8px;border-radius:6px;border:1px solid var(--border);margin-bottom:10px">${d.advice}</div>
+      <div>${checks}</div>`;
+  }
+
+  // ── Render social graph ─────────────────────────────────────────────
+  function renderSocialGraph(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const lc = { ISOLATED:'var(--muted)', PARTICIPANT:'var(--cyan)', CONNECTOR:'var(--yellow)', INFLUENCER:'var(--green)' }[d.communityLevel]||'var(--text)';
+    const conns = d.topConnections.length === 0
+      ? '<div class="empty">No recurring connections found</div>'
+      : d.topConnections.map(c => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.72rem">
+          <span style="color:var(--muted);font-family:monospace">${c.address.slice(0,8)}…${c.address.slice(-4)}</span>
+          <span>${c.interactionCount}x</span>
+          <span style="color:${c.relationshipType==='FREQUENT'?'var(--green)':c.relationshipType==='REGULAR'?'var(--cyan)':'var(--muted)'}">${c.relationshipType}</span>
+          <span style="color:var(--muted)">${c.lastSeen}</span>
+        </div>`).join('');
+    const signals = d.socialSignals.map(s => `<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:0.72rem">
+      <span style="color:var(--muted)">${s.signal}:</span> <strong>${s.value}</strong> — <span style="color:var(--muted)">${s.interpretation}</span>
+    </div>`).join('');
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:10px 0">
+        <div style="font-size:2rem;font-weight:900;color:${lc}">${d.socialScore}</div>
+        <div>
+          <div style="font-size:1rem;font-weight:700;color:${lc}">${d.communityLevel}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">${d.uniqueInteractions} unique peers · ${d.network}</div>
+        </div>
+      </div>
+      ${d.communityCategories.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${d.communityCategories.map(c=>`<span style="font-size:0.65rem;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a78bfa;padding:2px 8px;border-radius:10px">${c}</span>`).join('')}</div>`:''}
+      <div style="font-size:0.73rem;color:var(--muted);margin-bottom:8px">${d.summary}</div>
+      <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Top Connections</div>
+      <div style="margin-bottom:8px">${conns}</div>
+      <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Social Signals</div>
+      <div>${signals}</div>`;
+  }
+
+  // ── Render decision engine ──────────────────────────────────────────
+  function renderDecision(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const actionColors = { BUY:'var(--green)', HOLD:'var(--cyan)', SELL:'var(--yellow)', MONITOR:'var(--muted)', AVOID:'var(--red)' };
+    const ac = actionColors[d.action] || 'var(--text)';
+    const signalIcons = { BULLISH:'📈', BEARISH:'📉', NEUTRAL:'➡️', WARNING:'⚠️' };
+    const signals = d.signals.map(s => `
+      <div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.72rem">
+        <span>${signalIcons[s.signal]||'•'}</span>
+        <div><span style="color:var(--muted)">${s.source}</span><br/>${s.detail}</div>
+      </div>`).join('');
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;padding:12px 0">
+        <div style="font-size:2.2rem;font-weight:900;color:${ac};letter-spacing:-1px">${d.action}</div>
+        <div>
+          <div style="font-size:1.1rem;font-weight:700">${d.confidence}% confidence</div>
+          <div style="font-size:0.72rem;color:var(--muted)">Network: ${d.networkCondition} · ${d.executionReady ? '<span style="color:var(--green)">Ready to execute</span>' : '<span style="color:var(--red)">Not ready</span>'}</div>
+        </div>
+      </div>
+      <div style="font-size:0.78rem;color:var(--muted);padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;margin-bottom:10px;border:1px solid var(--border)">${d.reason}</div>
+      <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Signals (${d.signals.length})</div>
+      <div>${signals}</div>`;
+  }
+
+  // ── Render task planner ─────────────────────────────────────────────
+  function renderTaskPlanner(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const pc = { HIGH:'var(--red)', MEDIUM:'var(--yellow)', LOW:'var(--cyan)' };
+    const steps = d.steps.map(s => `
+      <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="min-width:22px;height:22px;border-radius:50%;background:var(--purple);color:#fff;font-size:0.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${s.order}</div>
+        <div style="flex:1">
+          <div style="font-size:0.8rem;font-weight:600">${s.action}</div>
+          <div style="font-size:0.7rem;color:var(--purple-light);margin:1px 0">${s.skill}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">${s.description}</div>
+          <div style="font-size:0.66rem;color:var(--muted);margin-top:3px;font-family:monospace;background:rgba(255,255,255,0.03);padding:3px 6px;border-radius:4px;word-break:break-all">${s.inputHint}</div>
+        </div>
+      </div>`).join('');
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0">
+        <div>
+          <div style="font-size:0.85rem;font-weight:700">${d.intent}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">${d.estimatedDuration} · ${d.steps.length} steps</div>
+        </div>
+        <div style="font-size:0.72rem;font-weight:700;color:${pc[d.priority]};background:rgba(255,255,255,0.05);padding:3px 10px;border-radius:12px;border:1px solid currentColor">${d.priority}</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">
+        ${d.skillSequence.map(s => `<span style="font-size:0.65rem;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);color:#a78bfa;padding:2px 7px;border-radius:10px">${s}</span>`).join(' → ')}
+      </div>
+      <div>${steps}</div>`;
+  }
+
+  // ── Render rebalancer ───────────────────────────────────────────────
+  function renderRebalancer(id, data, elapsed) {
+    const wrap = document.getElementById(id);
+    wrap.style.display = 'block';
+    const d = data.data;
+    const actionColors = { HOLD:'var(--cyan)', INCREASE:'var(--green)', REDUCE:'var(--yellow)', EXIT:'var(--red)' };
+    const targets = d.targetAllocations;
+    const targetRows = Object.entries(targets).map(([k,v]) => `
+      <div style="display:flex;justify-content:space-between;font-size:0.72rem;padding:3px 0">
+        <span style="color:var(--muted);text-transform:capitalize">${k}</span>
+        <span style="font-weight:600">${v}%</span>
+      </div>`).join('');
+    const actions = d.actions.slice(0,8).map(a => {
+      const c = actionColors[a.action] || 'var(--text)';
+      return `<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span style="min-width:62px;font-size:0.68rem;font-weight:700;color:${c};background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;text-align:center">${a.action}</span>
+        <div>
+          <div style="font-size:0.75rem;font-weight:600">${a.asset}</div>
+          <div style="font-size:0.68rem;color:var(--muted)">${a.currentPct}% → ${a.targetPct}% · ${a.reason}</div>
+        </div>
+      </div>`;
+    }).join('');
+    wrap.innerHTML = `
+      <div class="response-header">
+        <span class="badge badge-success">✓ Success</span>
+        <span class="elapsed">${elapsed}ms</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0">
+        <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:10px">
+          <div style="font-size:0.68rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">Profile: ${d.riskProfile}</div>
+          ${targetRows}
+        </div>
+        <div style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:8px;padding:10px;display:flex;flex-direction:column;justify-content:center;text-align:center">
+          <div style="font-size:0.68rem;color:var(--muted)">Total Value</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--green)">${d.totalValueUsd !== null ? '$'+d.totalValueUsd.toFixed(2) : 'N/A'}</div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">${d.currentAllocations.length} assets</div>
+        </div>
+      </div>
+      <div style="font-size:0.73rem;color:var(--muted);margin-bottom:8px">${d.summary}</div>
+      <div>${actions}</div>`;
+  }
+
+  // ── API call helpers ────────────────────────────────────────────────
+  async function post(path, body) {
+    const r = await fetch(`${API}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return r.json();
+  }
+
+  async function callPersonality() {
+    const addr = document.getElementById('wp-addr').value.trim();
+    setLoading('wp-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/api/wallet-personality', { address: addr, network: currentNetwork });
+      data.success ? renderPersonality('wp-result', data, Date.now()-t) : renderRaw('wp-result', data, Date.now()-t);
+    } catch(e) { renderRaw('wp-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('wp-btn', false);
+  }
+
+  async function callCreditScore() {
+    const addr = document.getElementById('cs-addr').value.trim();
+    setLoading('cs-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/api/credit-score', { address: addr, network: currentNetwork });
+      data.success ? renderScore('cs-result', data, Date.now()-t) : renderRaw('cs-result', data, Date.now()-t);
+    } catch(e) { renderRaw('cs-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('cs-btn', false);
+  }
+
+  async function callRiskAudit() {
+    const addr    = document.getElementById('ra-addr').value.trim();
+    const network = document.getElementById('ra-network').value;
+    setLoading('ra-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/api/risk-audit', { contractAddress: addr, network });
+      data.success ? renderRisk('ra-result', data, Date.now()-t) : renderRaw('ra-result', data, Date.now()-t);
+    } catch(e) { renderRaw('ra-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('ra-btn', false);
+  }
+
+  async function callWhaleTracker() {
+    const thresh = parseFloat(document.getElementById('wt-thresh').value) || 100;
+    const range  = parseInt(document.getElementById('wt-range').value) || 10;
+    const raw    = document.getElementById('wt-watch').value.trim();
+    const watch  = raw ? raw.split(',').map(s => s.trim()).filter(Boolean) : [];
+    setLoading('wt-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/api/whale-tracker', { thresholdNative: thresh, blockRange: range, watchAddresses: watch, network: currentNetwork });
+      data.success ? renderWhale('wt-result', data, Date.now()-t) : renderRaw('wt-result', data, Date.now()-t);
+    } catch(e) { renderRaw('wt-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('wt-btn', false);
+  }
+
+  async function callPortfolio() {
+    const addr   = document.getElementById('pf-addr').value.trim();
+    const raw    = document.getElementById('pf-chains').value.trim();
+    const chains = raw ? raw.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+    setLoading('pf-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/api/portfolio', { address: addr, chains });
+      data.success ? renderPortfolio('pf-result', data, Date.now()-t) : renderRaw('pf-result', data, Date.now()-t);
+    } catch(e) { renderRaw('pf-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('pf-btn', false);
+  }
+
+  async function callPaymentAdvisor() {
+    const from    = document.getElementById('pa-from').value.trim();
+    const to      = document.getElementById('pa-to').value.trim();
+    const amount  = parseFloat(document.getElementById('pa-amount').value) || 1;
+    const network = document.getElementById('pa-network').value;
+    setLoading('pa-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/api/payment-advice', { from, to, amountNative: amount, network });
+      data.success ? renderPayment('pa-result', data, Date.now()-t) : renderRaw('pa-result', data, Date.now()-t);
+    } catch(e) { renderRaw('pa-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('pa-btn', false);
+  }
+
+  async function callSocialGraph() {
+    const addr = document.getElementById('sg-addr').value.trim();
+    setLoading('sg-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/api/social-graph', { address: addr, network: currentNetwork });
+      data.success ? renderSocialGraph('sg-result', data, Date.now()-t) : renderRaw('sg-result', data, Date.now()-t);
+    } catch(e) { renderRaw('sg-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('sg-btn', false);
+  }
+
+  async function callDecisionEngine() {
+    const wallet = document.getElementById('ad-wallet').value.trim();
+    setLoading('ad-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/agent/decide', { wallet, network: currentNetwork });
+      data.success ? renderDecision('ad-result', data, Date.now()-t) : renderRaw('ad-result', data, Date.now()-t);
+    } catch(e) { renderRaw('ad-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('ad-btn', false);
+  }
+
+  async function callTaskPlanner() {
+    const goal    = document.getElementById('ap-goal').value.trim();
+    const wallet  = document.getElementById('ap-wallet').value.trim() || undefined;
+    const network = document.getElementById('ap-network').value.trim() || currentNetwork;
+    setLoading('ap-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/agent/plan', { goal, context: { wallet, network } });
+      data.success ? renderTaskPlanner('ap-result', data, Date.now()-t) : renderRaw('ap-result', data, Date.now()-t);
+    } catch(e) { renderRaw('ap-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('ap-btn', false);
+  }
+
+  async function callNetworkIntel() {
+    const network  = document.getElementById('ni-network').value;
+    const sample   = parseInt(document.getElementById('ni-sample').value) || 10;
+    setLoading('ni-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/api/network-stats', { network, blockSample: sample });
+      data.success ? renderNetworkIntel('ni-result', data, Date.now()-t) : renderRaw('ni-result', data, Date.now()-t);
+    } catch(e) { renderRaw('ni-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('ni-btn', false);
+  }
+
+  async function callReputation() {
+    const addr = document.getElementById('wr-addr').value.trim();
+    setLoading('wr-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/api/wallet-reputation', { address: addr, network: currentNetwork });
+      data.success ? renderReputation('wr-result', data, Date.now()-t) : renderRaw('wr-result', data, Date.now()-t);
+    } catch(e) { renderRaw('wr-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('wr-btn', false);
+  }
+
+  async function callRugPull() {
+    const addr    = document.getElementById('rp-addr').value.trim();
+    const network = document.getElementById('rp-network').value;
+    setLoading('rp-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/api/rug-pull', { contractAddress: addr, network });
+      data.success ? renderRugPull('rp-result', data, Date.now()-t) : renderRaw('rp-result', data, Date.now()-t);
+    } catch(e) { renderRaw('rp-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('rp-btn', false);
+  }
+
+  async function callRebalancer() {
+    const addr       = document.getElementById('rb-addr').value.trim();
+    const riskProfile = document.getElementById('rb-risk').value;
+    const raw        = document.getElementById('rb-chains').value.trim();
+    const chains     = raw ? raw.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+    setLoading('rb-btn', true);
+    const t = Date.now();
+    try {
+      const data = await post('/api/rebalance', { address: addr, riskProfile, chains });
+      data.success ? renderRebalancer('rb-result', data, Date.now()-t) : renderRaw('rb-result', data, Date.now()-t);
+    } catch(e) { renderRaw('rb-result', { success:false, error: e.message }, Date.now()-t); }
+    setLoading('rb-btn', false);
+  }
+</script>
+</body>
+</html>
