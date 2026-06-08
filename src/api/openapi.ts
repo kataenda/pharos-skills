@@ -27,8 +27,8 @@ npm install && npm run build && npm start
     license: { name: "MIT" },
   },
   servers: [
+    { url: "https://pharos.soenic.com", description: "Production" },
     { url: "http://localhost:3000", description: "Local development" },
-    { url: "https://pharos-skills.up.railway.app", description: "Production (Railway)" },
   ],
   tags: [
     { name: "System",        description: "Health checks and skill discovery" },
