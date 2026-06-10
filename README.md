@@ -556,6 +556,91 @@ pharos-skills/
 
 ---
 
+## Testing Skills via CLI
+
+### PowerShell (Windows)
+
+Run all 13 skills at once using the included test script:
+
+```powershell
+# Test against localhost
+.\test-all-skills.ps1
+
+# Test against production
+.\test-all-skills.ps1 -BaseUrl "https://pharos.soenic.com"
+
+# Test with a custom wallet
+.\test-all-skills.ps1 -Wallet "0xYOUR_WALLET" -Network "pharos_testnet"
+```
+
+**Expected output:**
+```
+================================================================
+  Pharos Skills API -- Test All 13 Skills
+================================================================
+  URL     : https://pharos.soenic.com
+  Wallet  : 0xbac32...
+  Network : pharos_testnet
+================================================================
+
+[1]  Wallet Personality Analyzer
+  [PASS] walletPersonalityAnalyzer           633ms
+       Personality : New Explorer
+...
+================================================================
+  PASS : 13 / 13
+================================================================
+  All 13 skills working.
+```
+
+### Individual skill calls (PowerShell)
+
+```powershell
+# Wallet Personality
+Invoke-WebRequest -Uri "https://pharos.soenic.com/api/wallet-personality" `
+  -Method POST -ContentType "application/json" `
+  -Body '{"address":"0x...","network":"pharos_testnet"}' `
+  -UseBasicParsing | Select-Object -ExpandProperty Content
+
+# Pharos Network Intelligence
+Invoke-WebRequest -Uri "https://pharos.soenic.com/api/network-stats" `
+  -Method POST -ContentType "application/json" `
+  -Body '{"network":"pharos_testnet"}' `
+  -UseBasicParsing | Select-Object -ExpandProperty Content
+
+# Agent Decision Engine
+Invoke-WebRequest -Uri "https://pharos.soenic.com/agent/decide" `
+  -Method POST -ContentType "application/json" `
+  -Body '{"wallet":"0x...","network":"pharos_testnet"}' `
+  -UseBasicParsing | Select-Object -ExpandProperty Content
+```
+
+### Individual skill calls (Linux/macOS/Git Bash)
+
+```bash
+# Wallet Personality
+curl -X POST https://pharos.soenic.com/api/wallet-personality \
+  -H "Content-Type: application/json" \
+  -d '{"address":"0x...","network":"pharos_testnet"}'
+
+# Pharos Network Intelligence
+curl -X POST https://pharos.soenic.com/api/network-stats \
+  -H "Content-Type: application/json" \
+  -d '{"network":"pharos_testnet"}'
+
+# Agent Decision Engine
+curl -X POST https://pharos.soenic.com/agent/decide \
+  -H "Content-Type: application/json" \
+  -d '{"wallet":"0x...","network":"pharos_testnet"}'
+
+# Agent Task Planner
+curl -X POST https://pharos.soenic.com/agent/plan \
+  -H "Content-Type: application/json" \
+  -d '{"goal":"Increase portfolio yield on Pharos","context":{"network":"pharos_testnet"}}'
+```
+
+---
+
 ## License
 
 MIT © soesoe — built for the Pharos Skill-to-Agent Dual Cascade Hackathon
