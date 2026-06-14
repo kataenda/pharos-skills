@@ -558,12 +558,26 @@ pharos-skills/
 
 ## Testing Skills via CLI
 
-### PowerShell (Windows)
+### One command (Windows / PowerShell)
 
-Run all 13 skills at once using the included test script:
+The easiest way — `run-test.ps1` builds, starts the server, waits until it's
+ready, tests all 13 skills, and stops the server again. No need for two
+terminals or a manually running server:
 
 ```powershell
-# Test against localhost
+.\run-test.ps1
+```
+
+> If scripts are blocked by execution policy, run once per terminal:
+> `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+
+### Test against a running server
+
+If a server is already running (locally via `npm start`, or in production),
+use `test-all-skills.ps1` directly:
+
+```powershell
+# Test against localhost (requires `npm start` in another terminal)
 .\test-all-skills.ps1
 
 # Test against production
@@ -572,6 +586,8 @@ Run all 13 skills at once using the included test script:
 # Test with a custom wallet
 .\test-all-skills.ps1 -Wallet "0xYOUR_WALLET" -Network "pharos_testnet"
 ```
+
+> Unit tests (no server needed): `npm test` runs the 26 Vitest specs.
 
 **Expected output:**
 ```
