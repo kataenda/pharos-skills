@@ -46,7 +46,7 @@ function scoreToAction(
 export const agentDecisionEngine: Skill<DecisionParams, DecisionResult> = {
   name: "agentDecisionEngine",
   description:
-    "The AI agent decision layer. Aggregates results from Wallet Reputation, Credit Score, Whale Tracking, and Network Intelligence to produce a single actionable decision (BUY/HOLD/SELL/MONITOR/AVOID) with a confidence score and human-readable reason. Designed to be the final step in any agent decision pipeline on Pharos.",
+    "Deterministic, rule-based decision layer (transparent weighted signal scoring — not an LLM). Aggregates results from Wallet Reputation, Credit Score, Whale Tracking, and Network Intelligence to produce a single actionable decision (BUY/HOLD/SELL/MONITOR/AVOID) with a confidence score and human-readable reason. Designed to be the final step in any agent decision pipeline on Pharos.",
   parameters: {
     type: "object",
     properties: {

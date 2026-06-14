@@ -22,7 +22,10 @@ npm install && npm run build && npm start
 \`\`\`
 
 ### AI Agent Integration
-\`GET /api/agent-tools\` returns all 13 skills in **OpenAI function-calling format** — paste directly into any LLM tool call.`,
+\`GET /api/agent-tools\` returns all 13 skills in **OpenAI function-calling format** — paste directly into any LLM tool call.
+
+### Rate Limiting & CORS
+Requests are rate-limited per IP (default **60 req/min**; configurable via \`RATE_LIMIT_MAX\` / \`RATE_LIMIT_WINDOW_MS\`). Exceeding the limit returns **429** with a \`Retry-After\` header. Allowed origins can be restricted via the \`CORS_ORIGINS\` env var (open by default for demos).`,
     contact: { name: "Pharos Skills Hackathon", url: "https://pharosnetwork.xyz" },
     license: { name: "MIT" },
   },
@@ -161,7 +164,7 @@ npm install && npm run build && npm start
       post: {
         tags: ["Wallet"],
         summary: "On-Chain Credit Score",
-        description: "Scores a wallet 0–1000 across 6 dimensions. Grades: D → CCC → B → BB → BBB → A → AA → AAA",
+        description: "Scores a wallet 0–1000 across 6 dimensions. Grades: D → CCC → B → BB → BBB → A → AA → AAA.\n\nScored from the most recent **≤200 transactions** and **≤100 token transfers** (not full history); tx count is the account nonce. If explorer history is unavailable the response returns `grade: \"N/A\"`, `dataComplete: false`, and a `warnings` array instead of a misleading low grade.",
         operationId: "creditScore",
         requestBody: {
           required: true,
@@ -178,7 +181,7 @@ npm install && npm run build && npm start
           },
         },
         responses: {
-          "200": { description: "Credit score result", content: { "application/json": { example: { success: true, data: { score: 742, grade: "A", summary: "Good standing." } } } } },
+          "200": { description: "Credit score result", content: { "application/json": { example: { success: true, data: { score: 742, grade: "A", dataComplete: true, warnings: [], summary: "Good standing.", methodology: "Scored from on-chain signals: native balance and tx count (nonce) via RPC, plus the most recent ≤200 transactions and ≤100 token transfers from the explorer." } } } } },
         },
       },
     },
@@ -234,7 +237,7 @@ npm install && npm run build && npm start
       post: {
         tags: ["Portfolio"],
         summary: "Cross-Chain Portfolio Analyzer",
-        description: "Aggregates ERC-20 + native token holdings across all supported chains with live USD prices from CoinGecko.",
+        description: "Aggregates ERC-20 + native token holdings across all supported chains with live USD prices from CoinGecko (cached in-memory for 45s to avoid free-tier rate limits). USD values are `null` when prices are unavailable.",
         operationId: "portfolio",
         requestBody: {
           required: true,
@@ -283,7 +286,7 @@ npm install && npm run build && npm start
       post: {
         tags: ["Contract"],
         summary: "Rug Pull Detector",
-        description: "Scans token contracts for: unverified source, mint functions, blacklist, pausable, adjustable fees, selfdestruct, non-renounced ownership, holder concentration.",
+        description: "Heuristic scan (source-code keyword matching + transfer analysis — **not a formal audit**) for: unverified source, mint functions, blacklist, pausable, adjustable fees, selfdestruct, non-renounced ownership, holder concentration. Unverified contracts never report `LOW` (floored to `MEDIUM`) since their logic can't be inspected. Every response includes a `disclaimer`.",
         operationId: "rugPull",
         requestBody: {
           required: true,
@@ -299,7 +302,27 @@ npm install && npm run build && npm start
             },
           },
         },
-        responses: { "200": { description: "Rug risk level and signals" } },
+        responses: {
+          "200": {
+            description: "Rug risk level and signals",
+            content: {
+              "application/json": {
+                example: {
+                  success: true,
+                  data: {
+                    isVerified: false,
+                    rugRisk: "MEDIUM",
+                    riskScore: 20,
+                    holderConcentration: null,
+                    summary: "MEDIUM RISK — Source is unverified, so hidden logic cannot be ruled out. Treat with caution until verified.",
+                    disclaimer: "Heuristic analysis based on source-code keyword matching and transfer history — NOT a formal security audit. Absence of signals does not guarantee safety.",
+                    signals: [{ severity: "HIGH", signal: "Unverified Source Code", description: "Contract source is not publicly verified." }],
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     },
     "/api/rebalance": {
@@ -463,7 +486,7 @@ npm install && npm run build && npm start
       post: {
         tags: ["Agent"],
         summary: "Agent Decision Engine ⭐",
-        description: "The AI agent decision layer. Runs **4 skills in parallel** (reputation + credit score + whale tracking + network intelligence) and produces a single actionable decision.\n\n**Actions:** BUY | HOLD | SELL | MONITOR | AVOID\n\n**Confidence:** 0–100%",
+        description: "Deterministic, **rule-based** decision layer (transparent weighted signal scoring — not an LLM). Runs **4 skills in parallel** (reputation + credit score + whale tracking + network intelligence) and aggregates them into a single actionable decision.\n\n**Actions:** BUY | HOLD | SELL | MONITOR | AVOID\n\n**Confidence:** 0–100%",
         operationId: "agentDecide",
         requestBody: {
           required: true,
@@ -506,7 +529,7 @@ npm install && npm run build && npm start
       post: {
         tags: ["Agent"],
         summary: "Agent Task Planner ⭐",
-        description: "Translates a **natural language goal** into an ordered sequence of Skills to execute.\n\n**Supported goals:** yield/income, rebalance, risk/audit, whale/track, buy/invest, sell/exit, reputation, contract/token due diligence",
+        description: "Maps a goal to an ordered sequence of Skills via **deterministic keyword matching against predefined templates** (not an LLM).\n\n**Supported goals:** yield/income, rebalance, risk/audit, whale/track, buy/invest, sell/exit, reputation, contract/token due diligence",
         operationId: "agentPlan",
         requestBody: {
           required: true,

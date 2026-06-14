@@ -168,7 +168,7 @@ function matchTemplate(goal: string): GoalTemplate {
 export const agentTaskPlanner: Skill<TaskPlannerParams, TaskPlannerResult> = {
   name: "agentTaskPlanner",
   description:
-    "Translates a high-level agent goal (natural language) into an ordered sequence of Pharos Skills to execute. Input a goal like 'Increase portfolio yield', 'Track whale accumulation', or 'Audit this contract' — the planner returns the exact skill sequence, execution hints, and estimated duration. The orchestration layer that connects intent to action.",
+    "Deterministic, rule-based planner (keyword matching against predefined goal templates — not an LLM) that maps a high-level goal into an ordered sequence of Pharos Skills to execute. Input a goal like 'Increase portfolio yield', 'Track whale accumulation', or 'Audit this contract' — the planner returns the matched skill sequence, execution hints, and estimated duration. The orchestration layer that connects intent to action.",
   parameters: {
     type: "object",
     properties: {
