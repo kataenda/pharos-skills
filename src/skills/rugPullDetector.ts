@@ -23,7 +23,11 @@ export interface RugPullResult {
   signals: RugSignal[];
   holderConcentration: number | null;
   summary: string;
+  disclaimer: string;
 }
+
+const HEURISTIC_DISCLAIMER =
+  "Heuristic analysis based on source-code keyword matching and transfer history — NOT a formal security audit. Absence of signals does not guarantee safety.";
 
 const SIGNAL_WEIGHTS: Record<RugSignal["severity"], number> = {
   CRITICAL: 40,
@@ -228,17 +232,28 @@ export const rugPullDetector: Skill<RugPullParams, RugPullResult> = {
       }
 
       const riskScore = signals.reduce((s, sig) => s + SIGNAL_WEIGHTS[sig.severity], 0);
-      const rugRisk: RugPullResult["rugRisk"] =
+      let rugRisk: RugPullResult["rugRisk"] =
         riskScore >= 60 ? "CRITICAL"
         : riskScore >= 35 ? "HIGH"
         : riskScore >= 15 ? "MEDIUM"
         : "LOW";
 
+      // Unverified source means the contract's logic cannot be inspected at all.
+      // Never report "LOW" in that case — the heuristic is blind to hidden behaviour,
+      // so the floor is raised to MEDIUM to avoid false reassurance.
+      if (!contractInfo.isVerified && rugRisk === "LOW") {
+        rugRisk = "MEDIUM";
+      }
+
       const summary =
         rugRisk === "CRITICAL" ? "CRITICAL — Multiple severe rug pull indicators detected. Do NOT invest."
         : rugRisk === "HIGH"   ? "HIGH RISK — Significant red flags found. Independent audit required before investing."
-        : rugRisk === "MEDIUM" ? "MEDIUM RISK — Some concerns detected. Research thoroughly before committing funds."
-        : "LOW RISK — No major rug pull signals detected. Standard caution still advised.";
+        : rugRisk === "MEDIUM" ? (
+            contractInfo.isVerified
+              ? "MEDIUM RISK — Some concerns detected. Research thoroughly before committing funds."
+              : "MEDIUM RISK — Source is unverified, so hidden logic cannot be ruled out. Treat with caution until verified."
+          )
+        : "LOW RISK — No major rug pull signals detected in verified source. Standard caution still advised.";
 
       return {
         success: true,
@@ -251,6 +266,7 @@ export const rugPullDetector: Skill<RugPullParams, RugPullResult> = {
           signals,
           holderConcentration,
           summary,
+          disclaimer: HEURISTIC_DISCLAIMER,
         },
       };
     } catch (error) {

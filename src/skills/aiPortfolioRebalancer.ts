@@ -2,6 +2,7 @@ import { ethers } from "ethers";
 import { Skill, SkillResult } from "../types/skill.js";
 import { getProvider, getNetworkConfig, NETWORKS } from "../utils/client.js";
 import { getTokenTransfers } from "../utils/explorer.js";
+import { fetchUsdPrices } from "../utils/prices.js";
 
 export interface RebalancerParams {
   address: string;
@@ -59,36 +60,6 @@ function categorize(symbol: string): AssetAllocation["category"] {
   return "altcoin";
 }
 
-const COINGECKO_IDS: Record<string, string> = {
-  ETH: "ethereum", WETH: "ethereum",
-  MATIC: "matic-network", WMATIC: "matic-network",
-  BNB: "binancecoin", WBNB: "binancecoin",
-  USDC: "usd-coin", USDT: "tether", DAI: "dai",
-  WBTC: "wrapped-bitcoin",
-  PHRS: "pharos-network", PROS: "pharos-network",
-};
-
-async function fetchPrices(symbols: string[]): Promise<Record<string, number>> {
-  const ids = [...new Set(symbols.map(s => COINGECKO_IDS[s]).filter(Boolean))];
-  if (ids.length === 0) return {};
-  try {
-    const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=usd`,
-      { signal: AbortSignal.timeout(8000) }
-    );
-    if (!res.ok) return {};
-    const data = (await res.json()) as Record<string, { usd: number }>;
-    const prices: Record<string, number> = {};
-    for (const [id, { usd }] of Object.entries(data)) {
-      const sym = Object.entries(COINGECKO_IDS).find(([, v]) => v === id)?.[0];
-      if (sym) prices[sym] = usd;
-    }
-    return prices;
-  } catch {
-    return {};
-  }
-}
-
 const ERC20_ABI = [
   "function balanceOf(address owner) view returns (uint256)",
   "function symbol() view returns (string)",
@@ -133,7 +104,7 @@ export const aiPortfolioRebalancer: Skill<RebalancerParams, RebalancerResult> = 
 
       const allSymbols: string[] = [];
       for (const c of targetChains) allSymbols.push(NETWORKS[c].nativeToken);
-      const prices = await fetchPrices(allSymbols);
+      const prices = await fetchUsdPrices(allSymbols);
 
       const rawAllocations: AssetAllocation[] = [];
 

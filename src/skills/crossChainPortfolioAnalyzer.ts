@@ -2,6 +2,7 @@ import { ethers } from "ethers";
 import { Skill, SkillResult } from "../types/skill.js";
 import { getProvider, getNetworkConfig, NETWORKS } from "../utils/client.js";
 import { getTokenTransfers } from "../utils/explorer.js";
+import { fetchUsdPrices } from "../utils/prices.js";
 
 const ERC20_ABI = [
   "function balanceOf(address owner) view returns (uint256)",
@@ -42,41 +43,6 @@ export interface CrossChainPortfolioResult {
   totalTokenCount: number;
 }
 
-// CoinGecko IDs for supported native tokens
-const COINGECKO_IDS: Record<string, string> = {
-  ETH: "ethereum",
-  MATIC: "matic-network",
-  BNB: "binancecoin",
-  PHRS: "pharos-network",
-  PROS: "pharos-network",
-};
-
-async function fetchUsdPrices(
-  symbols: string[]
-): Promise<Record<string, number>> {
-  const ids = [
-    ...new Set(symbols.map((s) => COINGECKO_IDS[s]).filter(Boolean)),
-  ];
-  if (ids.length === 0) return {};
-  try {
-    const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(
-        ","
-      )}&vs_currencies=usd`,
-      { signal: AbortSignal.timeout(8000) }
-    );
-    if (!res.ok) return {};
-    const data = (await res.json()) as Record<string, { usd: number }>;
-    const prices: Record<string, number> = {};
-    for (const [id, { usd }] of Object.entries(data)) {
-      const sym = Object.entries(COINGECKO_IDS).find(([, v]) => v === id)?.[0];
-      if (sym) prices[sym] = usd;
-    }
-    return prices;
-  } catch {
-    return {};
-  }
-}
 
 export const crossChainPortfolioAnalyzer: Skill<
   PortfolioParams,

@@ -25,7 +25,46 @@ const PUBLIC_DIR = join(process.cwd(), "public");
 
 const app = express();
 
-app.use(cors());
+// ── CORS ──────────────────────────────────────────────────────────────────
+// Restrict allowed origins via CORS_ORIGINS (comma-separated). When unset,
+// fall back to open access so local demos keep working out of the box.
+const allowedOrigins = (process.env.CORS_ORIGINS ?? "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+app.use(
+  cors(
+    allowedOrigins.length > 0
+      ? { origin: allowedOrigins }
+      : undefined // no allowlist configured → reflect any origin (demo mode)
+  )
+);
+
+// ── Basic rate limiting ─────────────────────────────────────────────────────
+// Lightweight in-memory fixed-window limiter (no external dependency).
+// Protects the free-tier upstream APIs from being hammered during a demo.
+const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000);
+const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX ?? 60);
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const key = req.ip ?? "unknown";
+  const now = Date.now();
+  const bucket = rateBuckets.get(key);
+
+  if (!bucket || bucket.resetAt <= now) {
+    rateBuckets.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+  } else if (bucket.count >= RATE_LIMIT_MAX) {
+    const retryAfter = Math.ceil((bucket.resetAt - now) / 1000);
+    res.setHeader("Retry-After", String(retryAfter));
+    res.status(429).json({ success: false, error: "Too many requests" });
+    return;
+  } else {
+    bucket.count++;
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(express.static(PUBLIC_DIR));
 
@@ -63,41 +102,25 @@ app.get("/health", (_req: Request, res: Response) => {
 });
 
 // ── Agent Tools (OpenAI function-calling format) ──────────────────────────
+// Always derived from ALL_SKILLS so the list can never desync from the registry.
 app.get("/api/agent-tools", (_req: Request, res: Response) => {
-  const tools = [
-    walletPersonalityAnalyzer,
-    onChainCreditScore,
-    smartContractRiskAuditor,
-    whaleTracking,
-    crossChainPortfolioAnalyzer,
-    walletReputationOracle,
-    rugPullDetector,
-    aiPortfolioRebalancer,
-    pharosNetworkIntelligence,
-    agentDecisionEngine,
-    agentTaskPlanner,
-  ].map(({ name, description, parameters }) => ({
+  const tools = ALL_SKILLS.map(({ name, description, parameters }) => ({
     type: "function",
     function: { name, description, parameters },
   }));
-  res.json({ tools });
+  res.json({ tools, count: tools.length });
 });
 
 // ── Skill definitions (for AI agent discovery) ────────────────────────────
+// Always derived from ALL_SKILLS so the list can never desync from the registry.
 app.get("/api/skills", (_req: Request, res: Response) => {
-  const skills = [
-    walletPersonalityAnalyzer,
-    onChainCreditScore,
-    smartContractRiskAuditor,
-    whaleTracking,
-    crossChainPortfolioAnalyzer,
-    walletReputationOracle,
-    rugPullDetector,
-    aiPortfolioRebalancer,
-    pharosNetworkIntelligence,
-  ].map(({ name, description, parameters }) => ({ name, description, parameters }));
+  const skills = ALL_SKILLS.map(({ name, description, parameters }) => ({
+    name,
+    description,
+    parameters,
+  }));
 
-  res.json({ skills });
+  res.json({ skills, count: skills.length });
 });
 
 // ── POST /api/wallet-personality ──────────────────────────────────────────

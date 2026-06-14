@@ -7,13 +7,20 @@ vi.mock("../utils/client.js", () => ({
 }));
 
 vi.mock("../utils/explorer.js", () => ({
-  getTransactionList: vi.fn(),
-  getTokenTransfers: vi.fn(),
+  getTransactionListResult: vi.fn(),
+  getTokenTransfersResult: vi.fn(),
 }));
 
 import { onChainCreditScore } from "../skills/onChainCreditScore.js";
 import { getProvider, getNetworkConfig } from "../utils/client.js";
-import { getTransactionList, getTokenTransfers } from "../utils/explorer.js";
+import {
+  getTransactionListResult,
+  getTokenTransfersResult,
+  type ExplorerTransaction,
+  type ExplorerTokenTransfer,
+} from "../utils/explorer.js";
+
+const ok = <T>(data: T[]) => ({ ok: true, data });
 
 const VALID_ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
 const MOCK_CONFIG = {
@@ -52,8 +59,8 @@ describe("onChainCreditScore", () => {
       mockProvider as unknown as ethers.JsonRpcProvider
     );
     vi.mocked(getNetworkConfig).mockReturnValue(MOCK_CONFIG);
-    vi.mocked(getTransactionList).mockResolvedValue([]);
-    vi.mocked(getTokenTransfers).mockResolvedValue([]);
+    vi.mocked(getTransactionListResult).mockResolvedValue(ok<ExplorerTransaction>([]));
+    vi.mocked(getTokenTransfersResult).mockResolvedValue(ok<ExplorerTokenTransfer>([]));
     mockProvider.getBalance.mockResolvedValue(0n);
     mockProvider.getTransactionCount.mockResolvedValue(0);
   });
@@ -74,11 +81,11 @@ describe("onChainCreditScore", () => {
   it("score breakdown components sum to total", async () => {
     mockProvider.getBalance.mockResolvedValue(ethers.parseEther("5"));
     mockProvider.getTransactionCount.mockResolvedValue(120);
-    vi.mocked(getTransactionList).mockResolvedValue(
-      Array(120).fill(null).map(() => makeTx("0xdeadbeef"))
+    vi.mocked(getTransactionListResult).mockResolvedValue(
+      ok(Array(120).fill(null).map(() => makeTx("0xdeadbeef")))
     );
-    vi.mocked(getTokenTransfers).mockResolvedValue(
-      Array(10).fill({ contractAddress: "0x" + "a".repeat(40) }).map((_, i) => ({
+    vi.mocked(getTokenTransfersResult).mockResolvedValue(
+      ok(Array(10).fill({ contractAddress: "0x" + "a".repeat(40) }).map((_, i) => ({
         ...({ contractAddress: `0x${"abcdef1234567890".repeat(2).slice(0, 40)}${i}` }),
         hash: "0x1",
         from: VALID_ADDRESS,
@@ -87,7 +94,7 @@ describe("onChainCreditScore", () => {
         tokenName: "Token",
         tokenSymbol: "TKN",
         tokenDecimal: "18",
-      }))
+      })))
     );
 
     const result = await onChainCreditScore.execute({ address: VALID_ADDRESS });
@@ -112,7 +119,7 @@ describe("onChainCreditScore", () => {
       ...Array(30).fill(null).map(() => makeTx("0x", "1")), // 75% failed
       ...Array(10).fill(null).map(() => makeTx()),
     ];
-    vi.mocked(getTransactionList).mockResolvedValue(txs);
+    vi.mocked(getTransactionListResult).mockResolvedValue(ok(txs));
 
     const result = await onChainCreditScore.execute({ address: VALID_ADDRESS });
     expect(result.success).toBe(true);
@@ -122,11 +129,11 @@ describe("onChainCreditScore", () => {
   it("grade AAA for high-scoring veteran wallet", async () => {
     mockProvider.getBalance.mockResolvedValue(ethers.parseEther("200"));
     mockProvider.getTransactionCount.mockResolvedValue(900);
-    vi.mocked(getTransactionList).mockResolvedValue(
-      Array(200).fill(null).map(() => makeTx("0xdeadbeef")) // all contract txs, old timestamp
+    vi.mocked(getTransactionListResult).mockResolvedValue(
+      ok(Array(200).fill(null).map(() => makeTx("0xdeadbeef"))) // all contract txs, old timestamp
     );
-    vi.mocked(getTokenTransfers).mockResolvedValue(
-      Array(15).fill(null).map((_, i) => ({
+    vi.mocked(getTokenTransfersResult).mockResolvedValue(
+      ok(Array(15).fill(null).map((_, i) => ({
         contractAddress: `0x${"0".repeat(39)}${i.toString(16)}`,
         hash: "0x1",
         from: VALID_ADDRESS,
@@ -135,7 +142,7 @@ describe("onChainCreditScore", () => {
         tokenName: `Token${i}`,
         tokenSymbol: `TK${i}`,
         tokenDecimal: "18",
-      }))
+      })))
     );
 
     const result = await onChainCreditScore.execute({ address: VALID_ADDRESS });

@@ -41,11 +41,21 @@ async function explorerRequest(
   return json.result;
 }
 
-export async function getTransactionList(
+/**
+ * Result wrapper that distinguishes a genuine fetch failure from a legitimate
+ * empty result. `ok: false` means the explorer could not be reached / returned
+ * an error — callers should treat the (empty) data as unknown, not as "0 txs".
+ */
+export interface ExplorerResult<T> {
+  ok: boolean;
+  data: T[];
+}
+
+export async function getTransactionListResult(
   explorerApi: string,
   address: string,
   limit = 100
-): Promise<ExplorerTransaction[]> {
+): Promise<ExplorerResult<ExplorerTransaction>> {
   try {
     const result = await explorerRequest(explorerApi, {
       module: "account",
@@ -57,17 +67,17 @@ export async function getTransactionList(
       offset: String(limit),
       sort: "desc",
     });
-    return Array.isArray(result) ? (result as ExplorerTransaction[]) : [];
+    return { ok: true, data: Array.isArray(result) ? (result as ExplorerTransaction[]) : [] };
   } catch {
-    return [];
+    return { ok: false, data: [] };
   }
 }
 
-export async function getTokenTransfers(
+export async function getTokenTransfersResult(
   explorerApi: string,
   address: string,
   limit = 100
-): Promise<ExplorerTokenTransfer[]> {
+): Promise<ExplorerResult<ExplorerTokenTransfer>> {
   try {
     const result = await explorerRequest(explorerApi, {
       module: "account",
@@ -77,10 +87,28 @@ export async function getTokenTransfers(
       offset: String(limit),
       sort: "desc",
     });
-    return Array.isArray(result) ? (result as ExplorerTokenTransfer[]) : [];
+    return { ok: true, data: Array.isArray(result) ? (result as ExplorerTokenTransfer[]) : [] };
   } catch {
-    return [];
+    return { ok: false, data: [] };
   }
+}
+
+/** Backward-compatible wrapper returning just the array (empty on failure). */
+export async function getTransactionList(
+  explorerApi: string,
+  address: string,
+  limit = 100
+): Promise<ExplorerTransaction[]> {
+  return (await getTransactionListResult(explorerApi, address, limit)).data;
+}
+
+/** Backward-compatible wrapper returning just the array (empty on failure). */
+export async function getTokenTransfers(
+  explorerApi: string,
+  address: string,
+  limit = 100
+): Promise<ExplorerTokenTransfer[]> {
+  return (await getTokenTransfersResult(explorerApi, address, limit)).data;
 }
 
 export async function getContractSource(

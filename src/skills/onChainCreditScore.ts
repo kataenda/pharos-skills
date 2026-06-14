@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import { Skill, SkillResult } from "../types/skill.js";
 import { getProvider, getNetworkConfig } from "../utils/client.js";
-import { getTransactionList, getTokenTransfers } from "../utils/explorer.js";
+import { getTransactionListResult, getTokenTransfersResult } from "../utils/explorer.js";
 
 export interface CreditScoreParams {
   address: string;
@@ -18,6 +18,10 @@ export interface CreditScoreResult {
   address: string;
   score: number;
   grade: string;
+  /** False when explorer history could not be fetched — score/grade are then unreliable. */
+  dataComplete: boolean;
+  /** Non-fatal issues affecting confidence (e.g. explorer unreachable). */
+  warnings: string[];
   breakdown: {
     walletAge: ScoreComponent;
     activityLevel: ScoreComponent;
@@ -28,7 +32,12 @@ export interface CreditScoreResult {
   };
   summary: string;
   recommendations: string[];
+  /** Methodology note so consumers don't over-read the score. */
+  methodology: string;
 }
+
+const METHODOLOGY =
+  "Scored from on-chain signals: native balance and tx count (nonce) via RPC, plus the most recent ≤200 transactions and ≤100 token transfers from the explorer. Wallet age is inferred from the earliest of those sampled transactions, not full history.";
 
 function getGrade(score: number): string {
   if (score >= 900) return "AAA";
@@ -44,7 +53,7 @@ function getGrade(score: number): string {
 export const onChainCreditScore: Skill<CreditScoreParams, CreditScoreResult> = {
   name: "onChainCreditScore",
   description:
-    "Calculates an on-chain credit score (0–1000) for a wallet address based on wallet age, activity, balance stability, DeFi participation, transaction success rate, and token diversity. Returns a grade (D to AAA) and improvement recommendations.",
+    "Calculates an on-chain credit score (0–1000) for a wallet address based on wallet age, activity, balance stability, DeFi participation, transaction success rate, and token diversity. Uses the most recent ≤200 transactions and ≤100 token transfers (not full history); tx count is the account nonce. Returns a grade (D to AAA, or N/A if history is unavailable) plus warnings and improvement recommendations.",
   parameters: {
     type: "object",
     properties: {
@@ -74,12 +83,22 @@ export const onChainCreditScore: Skill<CreditScoreParams, CreditScoreResult> = {
       const provider = getProvider(network);
       const config = getNetworkConfig(network);
 
-      const [rawBalance, txCount, transactions, tokenTransfers] = await Promise.all([
+      const [rawBalance, txCount, txResult, tokenResult] = await Promise.all([
         provider.getBalance(address),
         provider.getTransactionCount(address),
-        getTransactionList(config.explorerApi, address, 200),
-        getTokenTransfers(config.explorerApi, address, 100),
+        getTransactionListResult(config.explorerApi, address, 200),
+        getTokenTransfersResult(config.explorerApi, address, 100),
       ]);
+
+      const transactions = txResult.data;
+      const tokenTransfers = tokenResult.data;
+
+      const warnings: string[] = [];
+      if (!txResult.ok)
+        warnings.push("Transaction history could not be fetched from the explorer; age, activity, DeFi and success-rate scores are unreliable.");
+      if (!tokenResult.ok)
+        warnings.push("Token transfer history could not be fetched from the explorer; token diversity score is unreliable.");
+      const dataComplete = txResult.ok && tokenResult.ok;
 
       const balanceEth = parseFloat(ethers.formatEther(rawBalance));
       const failedTxs = transactions.filter((tx) => tx.isError === "1").length;
@@ -188,7 +207,9 @@ export const onChainCreditScore: Skill<CreditScoreParams, CreditScoreResult> = {
         successScore +
         tokenScore;
 
-      const grade = getGrade(totalScore);
+      // Withhold the grade when the primary history source failed — a wallet
+      // would otherwise be mislabelled "D / New Account" purely from a fetch error.
+      const grade = txResult.ok ? getGrade(totalScore) : "N/A";
 
       const recommendations: string[] = [];
       if (walletAgeScore < 50)
@@ -204,8 +225,9 @@ export const onChainCreditScore: Skill<CreditScoreParams, CreditScoreResult> = {
       if (tokenScore < 50)
         recommendations.push("Hold diverse tokens to demonstrate portfolio breadth.");
 
-      const summary =
-        totalScore >= 800
+      const summary = !txResult.ok
+        ? "Score withheld — wallet history could not be retrieved from the explorer. Try again later."
+        : totalScore >= 800
           ? "Excellent on-chain reputation. Highly trustworthy wallet with strong history."
           : totalScore >= 600
           ? "Good standing. Active participant with solid transaction history."
@@ -219,6 +241,8 @@ export const onChainCreditScore: Skill<CreditScoreParams, CreditScoreResult> = {
           address,
           score: totalScore,
           grade,
+          dataComplete,
+          warnings,
           breakdown: {
             walletAge: { score: walletAgeScore, maxScore: 150, label: walletAgeLabel },
             activityLevel: { score: activityScore, maxScore: 150, label: activityLabel },
@@ -229,6 +253,7 @@ export const onChainCreditScore: Skill<CreditScoreParams, CreditScoreResult> = {
           },
           summary,
           recommendations,
+          methodology: METHODOLOGY,
         },
       };
     } catch (error) {
